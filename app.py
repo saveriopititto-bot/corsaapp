@@ -194,13 +194,18 @@ def process_running_file(file):
 
 # --- FUNZIONE AUSILIARIA PER GESTIRE DURATE ---
 def ensure_seconds(duration_obj):
-    """Converte oggetti Duration di Strava o timedelta in float secondi."""
+    """Converte oggetti Duration di Strava, timedelta o altri tipi in float secondi."""
     if hasattr(duration_obj, 'total_seconds'):
+        # Per timedelta
         return duration_obj.total_seconds()
-    try:
-        return float(duration_obj)
-    except (TypeError, ValueError):
-        return 0.0
+    elif hasattr(duration_obj, 'seconds'):
+        # Per oggetti Duration di stravalib
+        return float(duration_obj.seconds)
+    else:
+        try:
+            return float(duration_obj)
+        except (TypeError, ValueError):
+            return 0.0
 
 # --- FUNZIONE PER ELABORARE ATTIVITÀ STRAVA ---
 def process_strava_activity(activity, client):
@@ -208,32 +213,53 @@ def process_strava_activity(activity, client):
         # Ottieni i dettagli dell'attività
         detailed_activity = client.get_activity(activity.id)
         
+        # Ottieni i streams (dati di potenza, HR, etc.) - CRUCIALE per il decoupling
+        streams = client.get_activity_streams(activity.id, types=['watts', 'heartrate', 'time'])
+        
+        # Verifica che abbiamo i dati necessari per il calcolo dello score
+        has_power = 'watts' in streams and streams['watts'].data
+        has_hr = 'heartrate' in streams and streams['heartrate'].data
+        has_time = 'time' in streams and streams['time'].data
+        
+        if not (has_power and has_hr and has_time):
+            st.warning(f"Attività {activity.name}: dati insufficienti (mancano power, HR o time streams)")
+            return None
+        
         # Simula la struttura JSON Polar/Garmin
         date = pd.to_datetime(activity.start_date)
         duration_sec = ensure_seconds(activity.elapsed_time)
-        distance = activity.distance.num  # in meters
+        distance = activity.distance.num if hasattr(activity.distance, 'num') else float(activity.distance)  # in meters
         ascent = getattr(activity, 'total_elevation_gain', 0) or 0
         
-        # Ottieni i streams (dati di potenza, HR, etc.)
-        streams = client.get_activity_streams(activity.id, types=['watts', 'heartrate', 'time'])
-        
+        # Costruisci samples e rr_data dai streams
         samples = []
         rr_data = []
         
-        if 'time' in streams:
-            time_stream = streams['time'].data
-            if 'watts' in streams:
-                power_data = streams['watts'].data
-                for i, p in enumerate(power_data):
-                    samples.append({'Power': p})
-            if 'heartrate' in streams:
-                hr_data = streams['heartrate'].data
-                # Converti HR in RR intervals (approssimativo)
-                for i in range(1, len(hr_data)):
-                    rr_interval = 60000 / ((hr_data[i-1] + hr_data[i]) / 2)  # ms
-                    rr_data.append(int(rr_interval))
+        time_stream = streams['time'].data
+        power_data = streams['watts'].data
+        hr_data = streams['heartrate'].data
         
-        # Costruisci la struttura dati simile
+        # Assumi che tutti i streams abbiano la stessa lunghezza
+        min_length = min(len(time_stream), len(power_data), len(hr_data))
+        
+        for i in range(min_length):
+            if i < len(power_data):
+                samples.append({'Power': power_data[i]})
+        
+        # Converti HR in RR intervals (intervalli R-R)
+        for i in range(1, min_length):
+            if i < len(hr_data):
+                # Calcola RR interval come tempo tra battiti (in ms)
+                # Assumi frequenza di campionamento costante
+                rr_interval = 1000.0 / ((hr_data[i-1] + hr_data[i]) / 2 / 60)  # ms
+                rr_data.append(int(rr_interval))
+        
+        # Verifica che abbiamo dati sufficienti
+        if not samples or not rr_data:
+            st.warning(f"Attività {activity.name}: dati di power o HR insufficienti dopo elaborazione")
+            return None
+        
+        # Costruisci la struttura dati simile a Polar/Garmin
         data = {
             'DeviceLog': {
                 'Header': {
@@ -247,11 +273,11 @@ def process_strava_activity(activity, client):
             }
         }
         
-        # Usa la stessa logica di process_running_file
+        # Usa la stessa logica di process_running_file_from_data
         return process_running_file_from_data(data)
         
     except Exception as e:
-        st.error(f"Errore processando attività Strava: {e}")
+        st.error(f"Errore elaborando attività Strava {getattr(activity, 'name', 'sconosciuta')}: {e}")
         return None
 
 # --- FUNZIONE AUSILIARIA PER PROCESSARE DATI DIRETTAMENTE ---
