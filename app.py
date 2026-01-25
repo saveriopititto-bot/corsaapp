@@ -43,6 +43,7 @@ if strava_configured:
     client_secret = st.secrets['strava']['client_secret']
     st.sidebar.info("✅ App Strava configurata (account condiviso)")
 else:
+    # Modalità account personale
     st.sidebar.info("ℹ️ Per connettere il tuo account Strava personale:")
     st.sidebar.markdown("[1. Crea la tua app Strava](https://www.strava.com/settings/api)")
     st.sidebar.markdown("2. Imposta **Authorization Callback Domain**: `corsaappalpha.streamlit.app`")
@@ -58,7 +59,9 @@ else:
     else:
         strava_configured = False
         st.sidebar.warning("Inserisci le tue credenziali Strava per connettere il tuo account personale")
-    
+
+# Se Strava è configurato (secrets o credenziali manuali), mostra il flusso OAuth
+if strava_configured:
     # Gestisci il flusso OAuth
     query_params = st.query_params
     
@@ -95,9 +98,6 @@ else:
         # Pulsante per connettere
         auth_url = f"https://www.strava.com/oauth/authorize?client_id={client_id}&response_type=code&redirect_uri={st.secrets.get('strava', {}).get('redirect_uri', 'https://corsaappalpha.streamlit.app')}&scope=activity:read_all"
         st.sidebar.link_button("🔗 Connetti Strava", auth_url, help="Clicca per autorizzare l'accesso ai tuoi dati Strava")
-        
-else:
-    st.sidebar.warning("⚠️ Integrazione Strava non configurata. Contatta l'amministratore.")
 
 # Mediana Peer Group (Costante di riferimento)
 MEDIAN_VAL = 1.40 
