@@ -1,12 +1,14 @@
 # CorsaScore App
 
-Algoritmo per misurazione efficienza aerobica nelle corse.
+Algoritmo per misurazione efficienza aerobica nelle corse con **SCORE 3.0 (Climate-Aware)**.
 
 ## Funzionalità
 
-- Analisi del punteggio CorsaScore 2.0 basato su potenza, frequenza cardiaca e decoupling aerobico
-- Caricamento dati da file JSON (Polar/Garmin)
-- Integrazione con Strava API per importare attività direttamente
+- ✅ Analisi del punteggio **SCORE 3.0** basato su potenza, frequenza cardiaca, decoupling e condizioni meteo
+- ✅ **Weather Correction Factor (WCF)** per temperatura e umidità
+- ✅ Caricamento dati da file JSON (Polar/Garmin)
+- ✅ Integrazione con Strava API per importare attività direttamente
+- ✅ Visualizzazioni interattive con grafici Plotly
 
 ## Pubblicazione su Streamlit Cloud
 

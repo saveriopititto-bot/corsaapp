@@ -20,9 +20,10 @@ st.set_page_config(page_title="CorsaScore App", layout="wide", page_icon=page_ic
 
 st.title("🏃‍♂️ CorsaScore: Analisi Efficienza Aerobica")
 st.markdown("""
-Questa dashboard calcola il tuo **SCORE 2.0**.
+Questa dashboard calcola il tuo **SCORE 3.0 (Climate-Aware)**.
 Il sistema analizza la relazione tra la **Potenza (Watt)** e la **Frequenza Cardiaca**, 
-penalizzando le sessioni dove si verifica un alto *Aerobic Decoupling* (deriva cardiaca).
+penalizzando le sessioni dove si verifica un alto *Aerobic Decoupling*.
+Include correzioni per **condizioni meteo** (temperatura e umidità).
 """)
 
 # --- SIDEBAR: PARAMETRI UTENTE ---
@@ -31,6 +32,15 @@ weight = st.sidebar.number_input("Peso (Kg)", value=74.0, step=0.1)
 hr_rest = st.sidebar.number_input("BPM a Riposo", value=60)
 hr_max = st.sidebar.number_input("BPM Massimi", value=185)
 base_offset = st.sidebar.slider("Base Offset (Standard: 2.0)", 0.0, 5.0, 2.0, help="Sottrae un valore fisso per normalizzare il punteggio intorno allo zero o a una scala specifica.")
+
+# --- SIDEBAR: CONDIZIONI METEO ---
+st.sidebar.header("🌤️ Condizioni Meteo")
+temp_c = st.sidebar.number_input("Temperatura (°C)", value=20.0, step=0.5, help="Temperatura ambiente durante l'attività")
+humidity_pct = st.sidebar.number_input("Umidità (%)", value=60.0, step=1.0, min_value=0.0, max_value=100.0, help="Umidità relativa dell'aria")
+
+# Calcola e mostra WCF
+wcf = calculate_wcf(temp_c, humidity_pct)
+st.sidebar.metric("Weather Correction Factor", f"{wcf:.3f}", help="Bonus/premalità basato su condizioni meteo")
 
 # --- SIDEBAR: INTEGRAZIONE STRAVA ---
 st.sidebar.header("🏃‍♂️ Integrazione Strava")
@@ -201,20 +211,47 @@ def process_running_file(file):
         st.error(f"Errore processando il file: {e}")
         return None
 
-# --- FUNZIONE AUSILIARIA PER GESTIRE DURATE ---
-def ensure_seconds(duration_obj):
-    """Converte oggetti Duration di Strava, timedelta o altri tipi in float secondi."""
-    if hasattr(duration_obj, 'total_seconds'):
-        # Per timedelta
-        return duration_obj.total_seconds()
-    elif hasattr(duration_obj, 'seconds'):
-        # Per oggetti Duration di stravalib
-        return float(duration_obj.seconds)
-    else:
-        try:
-            return float(duration_obj)
-        except (TypeError, ValueError):
-            return 0.0
+# --- FUNZIONI SCORE 3.0 (Climate-Aware) ---
+import numpy as np
+
+def calculate_wcf(temp_c, humidity_pct):
+    """
+    Calcola il Weather Correction Factor (SCORE 3.0).
+    Soglie: Temp > 20°C, Umidità > 60%.
+    """
+    bonus_temp = max(0, 0.012 * (temp_c - 20))
+    bonus_humi = max(0, 0.005 * (humidity_pct - 60))
+    return 1 + bonus_temp + bonus_humi
+
+def calculate_score_3(watt_avg, weight_kg, hr_avg, hr_rest, hr_max, 
+                      ascent_m, distance_m, duration_sec, 
+                      decoupling_d, temp_c=20, humidity_pct=60, offset=2.0):
+    """
+    Implementazione della formula SCORE 3.0 (Climate-Aware).
+    """
+    # 1. Calcolo Pendenza e Watt Corretti
+    grade = ascent_m / distance_m if distance_m > 0 else 0
+    watt_adj = watt_avg * (1 + grade)
+    
+    # 2. Calcolo %HRR (Riserva Cardiaca)
+    hrr_pct = (hr_avg - hr_rest) / (hr_max - hr_rest)
+    if hrr_pct <= 0: return 0 # Evita divisioni per zero o valori negativi
+    
+    # 3. Calcolo Weather Correction Factor
+    wcf = calculate_wcf(temp_c, humidity_pct)
+    
+    # 4. Normalizzazione Temporale (Durata in ore)
+    t_hours = duration_sec / 3600
+    if t_hours <= 0: return 0
+    
+    # 5. Formula Finale SCORE 3.0
+    # [(Watt_adj/Kg / %HRR) * WCF - Offset] * (1 - D / sqrt(T))
+    efficiency_ratio = ((watt_adj / weight_kg) / hrr_pct) * wcf
+    d_penalty = decoupling_d / np.sqrt(t_hours)
+    
+    score_3 = (efficiency_ratio - offset) * (1 - d_penalty)
+    
+    return round(score_3, 2)
 
 # --- FUNZIONE PER ELABORARE ATTIVITÀ STRAVA ---
 def process_strava_activity(activity, client):
@@ -361,17 +398,21 @@ def process_running_file_from_data(data):
         # Decoupling %
         decoupling = (ef1 - ef2) / ef1 if ef1 > 0 else 0
         
-        # 5. FORMULA SCORE 2.0
-        # Efficiency Ratio: (Watts/Kg) per %HRR unit
-        w_kg = watt_adj / weight
-        efficiency_ratio = w_kg / hrr_pct if hrr_pct > 0 else 0
-        
-        # Decoupling Penalty: normalized by duration (sqrt of hours)
-        # Longer runs with low decoupling are rewarded more than short runs
-        d_penalty = decoupling / np.sqrt(t_hours) if t_hours > 0 else 0
-        
-        # Final Score
-        score = (efficiency_ratio - base_offset) * (1 - d_penalty)
+        # 5. FORMULA SCORE 3.0 (Climate-Aware)
+        score = calculate_score_3(
+            watt_avg=avg_power,
+            weight_kg=weight,
+            hr_avg=avg_hr,
+            hr_rest=hr_rest,
+            hr_max=hr_max,
+            ascent_m=ascent,
+            distance_m=distance,
+            duration_sec=duration_sec,
+            decoupling_d=decoupling,
+            temp_c=temp_c,
+            humidity_pct=humidity_pct,
+            offset=base_offset
+        )
         
         return {
             "Data": date,
@@ -379,7 +420,7 @@ def process_running_file_from_data(data):
             "HR_Avg": round(avg_hr, 1),
             "%HRR": round(hrr_pct*100, 1),
             "Decoupling": round(decoupling*100, 2),
-            "SCORE_2": round(score, 3),
+            "SCORE_3": score,
             "Duration_Min": round(duration_sec/60, 0)
         }
     except Exception as e:
@@ -456,7 +497,7 @@ if (uploaded_files or strava_activities):
         # --- TOP METRICS ---
         st.markdown("---")
         m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Score Medio", f"{df['SCORE_2'].mean():.2f}")
+        m1.metric("Score Medio", f"{df['SCORE_3'].mean():.2f}")
         m2.metric("Decoupling Medio", f"{df['Decoupling'].mean():.2f}%")
         m3.metric("Watt Adj Medi", f"{df['Watt_Adj'].mean():.0f} W")
         m4.metric("%HRR Media", f"{df['%HRR'].mean():.1f}%")
@@ -473,8 +514,8 @@ if (uploaded_files or strava_activities):
 
             # Add Score Trace
             fig.add_trace(go.Scatter(
-                x=df['Data'], y=df['SCORE_2'],
-                name="Score 2.0", mode='lines+markers',
+                x=df['Data'], y=df['SCORE_3'],
+                name="Score 3.0", mode='lines+markers',
                 line=dict(color='#00CC96', width=3)
             ))
 
@@ -490,7 +531,7 @@ if (uploaded_files or strava_activities):
 
             # Layout
             fig.update_layout(
-                yaxis=dict(title="Score 2.0"),
+                yaxis=dict(title="Score 3.0"),
                 yaxis2=dict(title="Decoupling %", overlaying='y', side='right', range=[-5, 20]),
                 legend=dict(x=0, y=1.1, orientation='h'),
                 hovermode="x unified"
@@ -501,13 +542,13 @@ if (uploaded_files or strava_activities):
         with col2:
             st.subheader("📋 Dettaglio Sessioni")
             st.dataframe(
-                df[["Data", "SCORE_2", "%HRR", "Decoupling", "Duration_Min"]].style.background_gradient(subset=['SCORE_2'], cmap='Greens'), 
+                df[["Data", "SCORE_3", "%HRR", "Decoupling", "Duration_Min"]].style.background_gradient(subset=['SCORE_3'], cmap='Greens'), 
                 height=400,
                 hide_index=True
             )
 
         # --- INSIGHTS ---
-        avg_score = df["SCORE_2"].mean()
+        avg_score = df["SCORE_3"].mean()
         if avg_score > MEDIAN_VAL:
             st.success(f"🚀 Ottimo lavoro! Il tuo Score medio ({avg_score:.2f}) è superiore alla media del gruppo ({MEDIAN_VAL}).")
         else:
@@ -516,13 +557,19 @@ if (uploaded_files or strava_activities):
         # Mathematical Context
         with st.expander("ℹ️ Come viene calcolato lo Score?"):
             st.markdown(r"""
-            Lo **Score 2.0** combina l'efficienza meccanica con la tenuta aerobica:
+            Lo **Score 3.0 (Climate-Aware)** combina l'efficienza meccanica con la tenuta aerobica e le condizioni meteo:
             
             $$
-            \text{Score} = \left( \frac{\text{Watt}_{adj} / \text{Kg}}{\%HRR} - \text{Offset} \right) \times (1 - D_{penalty})
+            \text{Score} = \left[ \left( \frac{\text{Watt}_{adj} / \text{Kg}}{\%HRR} \right) \times \text{WCF} - \text{Offset} \right] \times (1 - D_{penalty})
             $$
             
-            Dove il **Decoupling Penalty** ($D_{penalty}$) riduce lo score se la frequenza cardiaca deriva verso l'alto a parità di potenza:
+            Dove **WCF (Weather Correction Factor)** corregge per condizioni ambientali:
+            
+            $$
+            \text{WCF} = 1 + 0.012 \times \max(0, T - 20) + 0.005 \times \max(0, H - 60)
+            $$
+            
+            E il **Decoupling Penalty** ($D_{penalty}$) riduce lo score se la frequenza cardiaca deriva:
             
             $$
             D_{penalty} = \frac{\text{Decoupling}}{\sqrt{t_{hours}}}
