@@ -8,7 +8,15 @@ from stravalib import Client
 import requests
 
 # --- CONFIGURAZIONE PAGINA ---
-st.set_page_config(page_title="CorsaScore App", layout="wide", page_icon="🏃‍♂️")
+# Usa icona personalizzata se disponibile, altrimenti emoji
+import os
+icon_path = "assets/icon.png"
+if os.path.exists(icon_path):
+    page_icon = icon_path
+else:
+    page_icon = "🏃‍♂️"
+
+st.set_page_config(page_title="CorsaScore App", layout="wide", page_icon=page_icon)
 
 st.title("🏃‍♂️ CorsaScore: Analisi Efficienza Aerobica")
 st.markdown("""

@@ -33,6 +33,13 @@ Algoritmo per misurazione efficienza aerobica nelle corse.
 2. Imposta redirect URI: `https://your-app-name.streamlit.app` (dopo il deploy)
 3. Usa Client ID e Client Secret nell'app
 
+## Icona Personalizzata
+
+Per usare un'icona personalizzata:
+1. Metti la tua immagine (PNG, ICO, etc.) nella cartella `assets/`
+2. Rinominala come `icon.png` (o modifica il codice in `app.py` per usare il tuo nome file)
+3. L'app la caricherà automaticamente al prossimo deploy
+
 ## Esecuzione Locale
 
 ```bash
