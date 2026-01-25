@@ -222,7 +222,7 @@ def process_strava_activity(activity, client):
         has_time = 'time' in streams and streams['time'].data
         
         if not (has_power and has_hr and has_time):
-            st.warning(f"Attività {activity.name}: dati insufficienti (mancano power, HR o time streams)")
+            st.warning(f"Attività di corsa {activity.name}: dati insufficienti (mancano power, HR o time streams)")
             return None
         
         # Simula la struttura JSON Polar/Garmin
@@ -256,7 +256,7 @@ def process_strava_activity(activity, client):
         
         # Verifica che abbiamo dati sufficienti
         if not samples or not rr_data:
-            st.warning(f"Attività {activity.name}: dati di power o HR insufficienti dopo elaborazione")
+            st.warning(f"Attività di corsa {activity.name}: dati di power o HR insufficienti dopo elaborazione")
             return None
         
         # Costruisci la struttura dati simile a Polar/Garmin
@@ -396,10 +396,15 @@ else:  # Strava
             try:
                 client = Client()
                 client.access_token = st.session_state['strava_token']
-                # Ottieni le attività recenti
-                activities = client.get_activities(limit=10)  # ultime 10 attività
-                strava_activities = list(activities)
-                st.success(f"✅ Caricate {len(strava_activities)} attività da Strava!")
+                # Ottieni le attività recenti e filtra solo le corse
+                all_activities = client.get_activities(limit=50)  # Prendi più attività per avere abbastanza corse
+                strava_activities = [activity for activity in all_activities if activity.type == "Run"]
+                
+                if strava_activities:
+                    st.success(f"✅ Caricate {len(strava_activities)} attività di corsa da Strava!")
+                else:
+                    st.warning("Nessuna attività di corsa trovata nelle ultime 50 attività.")
+                
                 st.session_state['refresh_strava'] = False
             except Exception as e:
                 st.error(f"Errore caricando da Strava: {e}")
