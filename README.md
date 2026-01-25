@@ -27,11 +27,21 @@ Algoritmo per misurazione efficienza aerobica nelle corse.
    - Seleziona il branch main e il file app.py
    - Clicca Deploy
 
-## Configurazione Strava (per sviluppatori)
+## Configurazione Strava
 
-1. Crea un'app su [Strava API Settings](https://www.strava.com/settings/api)
-2. Imposta redirect URI: `https://your-app-name.streamlit.app` (dopo il deploy)
-3. Usa Client ID e Client Secret nell'app
+### Per Utenti Finali (Consigliato)
+Ogni utente può connettere il proprio account Strava personale:
+
+1. **Crea la tua app Strava**: Vai su [https://www.strava.com/settings/api](https://www.strava.com/settings/api)
+2. **Configura l'app**:
+   - Application Name: "CorsaScore Personale"
+   - Website: `https://corsaappalpha.streamlit.app`
+   - Authorization Callback Domain: `corsaappalpha.streamlit.app`
+3. **Inserisci nell'app**: Client ID e Client Secret dalla tua app Strava
+4. **Connetti**: Clicca "🔗 Connetti Strava" per autorizzare l'accesso
+
+### Per Sviluppatori (Deployment Ufficiale)
+Aggiungi secrets in Streamlit Cloud per un'app Strava condivisa che tutti possono usare.
 
 ## Icona Personalizzata
 

@@ -41,6 +41,23 @@ strava_configured = 'strava' in st.secrets and 'client_id' in st.secrets['strava
 if strava_configured:
     client_id = st.secrets['strava']['client_id']
     client_secret = st.secrets['strava']['client_secret']
+    st.sidebar.info("✅ App Strava configurata (account condiviso)")
+else:
+    st.sidebar.info("ℹ️ Per connettere il tuo account Strava personale:")
+    st.sidebar.markdown("[1. Crea la tua app Strava](https://www.strava.com/settings/api)")
+    st.sidebar.markdown("2. Imposta **Authorization Callback Domain**: `corsaappalpha.streamlit.app`")
+    
+    client_id = st.sidebar.text_input("Il tuo Client ID Strava", type="password", 
+                                     help="Dalla tua app Strava > API")
+    client_secret = st.sidebar.text_input("Il tuo Client Secret Strava", type="password",
+                                         help="Dalla tua app Strava > API")
+    
+    if client_id and client_secret:
+        strava_configured = True
+        st.sidebar.success("✅ Credenziali inserite - ora puoi connettere il tuo account!")
+    else:
+        strava_configured = False
+        st.sidebar.warning("Inserisci le tue credenziali Strava per connettere il tuo account personale")
     
     # Gestisci il flusso OAuth
     query_params = st.query_params
