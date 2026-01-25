@@ -27,16 +27,52 @@ base_offset = st.sidebar.slider("Base Offset (Standard: 2.0)", 0.0, 5.0, 2.0, he
 # --- SIDEBAR: INTEGRAZIONE STRAVA ---
 st.sidebar.header("🏃‍♂️ Integrazione Strava")
 
-# Usa secrets se disponibili, altrimenti input manuale
-if 'strava' in st.secrets:
-    strava_client_id = st.secrets['strava']['client_id']
-    strava_client_secret = st.secrets['strava']['client_secret']
-    st.sidebar.info("✅ Configurazione Strava caricata dai secrets.")
-else:
-    strava_client_id = st.sidebar.text_input("Strava Client ID", type="password", help="Ottieni il Client ID dalla tua app Strava su https://www.strava.com/settings/api")
-    strava_client_secret = st.sidebar.text_input("Strava Client Secret", type="password", help="Ottieni il Client Secret dalla tua app Strava")
+# Controlla se i secrets sono configurati
+strava_configured = 'strava' in st.secrets and 'client_id' in st.secrets['strava'] and 'client_secret' in st.secrets['strava']
 
-strava_code = st.sidebar.text_input("Authorization Code", help="Dopo aver autorizzato l'app, copia il code dall'URL di redirect")
+if strava_configured:
+    client_id = st.secrets['strava']['client_id']
+    client_secret = st.secrets['strava']['client_secret']
+    
+    # Gestisci il flusso OAuth
+    query_params = st.query_params
+    
+    if 'code' in query_params and not st.session_state.get('strava_token'):
+        # Scambia il code per il token
+        try:
+            token_response = requests.post(
+                'https://www.strava.com/oauth/token',
+                data={
+                    'client_id': client_id,
+                    'client_secret': client_secret,
+                    'code': query_params['code'],
+                    'grant_type': 'authorization_code'
+                }
+            )
+            token_data = token_response.json()
+            if 'access_token' in token_data:
+                st.session_state['strava_token'] = token_data['access_token']
+                st.success("✅ Connessione Strava riuscita!")
+                # Pulisci i query params
+                st.query_params.clear()
+            else:
+                st.error("Errore nell'autenticazione Strava.")
+        except Exception as e:
+            st.error(f"Errore: {e}")
+    
+    # Mostra stato connessione
+    if 'strava_token' in st.session_state:
+        st.sidebar.success("✅ Connesso a Strava")
+        if st.sidebar.button("🔄 Aggiorna Dati Strava"):
+            st.session_state['refresh_strava'] = True
+            st.rerun()
+    else:
+        # Pulsante per connettere
+        auth_url = f"https://www.strava.com/oauth/authorize?client_id={client_id}&response_type=code&redirect_uri={st.secrets.get('strava', {}).get('redirect_uri', 'https://corsaappalpha.streamlit.app')}&scope=activity:read_all"
+        st.sidebar.link_button("🔗 Connetti Strava", auth_url, help="Clicca per autorizzare l'accesso ai tuoi dati Strava")
+        
+else:
+    st.sidebar.warning("⚠️ Integrazione Strava non configurata. Contatta l'amministratore.")
 
 if st.sidebar.button("🔗 Autorizza Strava"):
     if strava_client_id and strava_client_secret:
@@ -311,36 +347,24 @@ if upload_option == "File JSON (Polar/Garmin)":
         accept_multiple_files=True
     )
 else:  # Strava
-    if st.button("🔄 Carica Attività da Strava"):
-        if strava_client_id and strava_client_secret and strava_code:
+    if st.button("🔄 Carica Attività da Strava") or st.session_state.get('refresh_strava', False):
+        if strava_configured and 'strava_token' in st.session_state:
             try:
-                # Scambia il code per il token
-                token_response = requests.post(
-                    'https://www.strava.com/oauth/token',
-                    data={
-                        'client_id': strava_client_id,
-                        'client_secret': strava_client_secret,
-                        'code': strava_code,
-                        'grant_type': 'authorization_code'
-                    }
-                )
-                token_data = token_response.json()
-                access_token = token_data.get('access_token')
-                
-                if access_token:
-                    st.session_state['strava_token'] = access_token
-                    client = Client()
-                    client.access_token = access_token
-                    # Ottieni le attività recenti
-                    activities = client.get_activities(limit=10)  # ultime 10 attività
-                    strava_activities = list(activities)
-                    st.success(f"Caricate {len(strava_activities)} attività da Strava!")
-                else:
-                    st.error("Errore nell'autenticazione Strava. Verifica il code.")
+                client = Client()
+                client.access_token = st.session_state['strava_token']
+                # Ottieni le attività recenti
+                activities = client.get_activities(limit=10)  # ultime 10 attività
+                strava_activities = list(activities)
+                st.success(f"✅ Caricate {len(strava_activities)} attività da Strava!")
+                st.session_state['refresh_strava'] = False
             except Exception as e:
                 st.error(f"Errore caricando da Strava: {e}")
+                # Se token scaduto, chiedi riconnessione
+                if 'token' in str(e).lower():
+                    st.warning("Token scaduto. Riconnettiti a Strava.")
+                    del st.session_state['strava_token']
         else:
-            st.warning("Inserisci Client ID, Client Secret e Authorization Code per caricare da Strava.")
+            st.warning("Connettiti prima a Strava usando il pulsante nella sidebar.")
 
 if (uploaded_files or strava_activities):
     results = []

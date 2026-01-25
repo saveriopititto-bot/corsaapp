@@ -18,8 +18,9 @@ Algoritmo per misurazione efficienza aerobica nelle corse.
      [strava]
      client_id = "your_client_id"
      client_secret = "your_client_secret"
+     redirect_uri = "https://your-app-name.streamlit.app"
      ```
-   - Se non aggiungi secrets, gli utenti dovranno inserire manualmente ID e secret.
+   - Il `redirect_uri` deve corrispondere esattamente a quello impostato nell'app Strava
 3. **Deploy**:
    - Vai su [share.streamlit.io](https://share.streamlit.io)
    - Collega il tuo repository GitHub
