@@ -82,14 +82,6 @@ if strava_configured:
 else:
     st.sidebar.warning("⚠️ Integrazione Strava non configurata. Contatta l'amministratore.")
 
-if st.sidebar.button("🔗 Autorizza Strava"):
-    if strava_client_id and strava_client_secret:
-        auth_url = f"https://www.strava.com/oauth/authorize?client_id={strava_client_id}&response_type=code&redirect_uri=http://localhost:8501&scope=activity:read_all"
-        st.sidebar.markdown(f"[Clicca qui per autorizzare]({auth_url})")
-        st.sidebar.info("Dopo l'autorizzazione, copia il 'code' dall'URL e inseriscilo sopra.")
-    else:
-        st.sidebar.error("Inserisci Client ID e Client Secret prima di autorizzare.")
-
 # Mediana Peer Group (Costante di riferimento)
 MEDIAN_VAL = 1.40 
 
