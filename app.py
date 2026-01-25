@@ -192,6 +192,16 @@ def process_running_file(file):
         st.error(f"Errore processando il file: {e}")
         return None
 
+# --- FUNZIONE AUSILIARIA PER GESTIRE DURATE ---
+def ensure_seconds(duration_obj):
+    """Converte oggetti Duration di Strava o timedelta in float secondi."""
+    if hasattr(duration_obj, 'total_seconds'):
+        return duration_obj.total_seconds()
+    try:
+        return float(duration_obj)
+    except (TypeError, ValueError):
+        return 0.0
+
 # --- FUNZIONE PER ELABORARE ATTIVITÀ STRAVA ---
 def process_strava_activity(activity, client):
     try:
@@ -200,7 +210,7 @@ def process_strava_activity(activity, client):
         
         # Simula la struttura JSON Polar/Garmin
         date = pd.to_datetime(activity.start_date)
-        duration_sec = activity.elapsed_time.total_seconds()
+        duration_sec = ensure_seconds(activity.elapsed_time)
         distance = activity.distance.num  # in meters
         ascent = getattr(activity, 'total_elevation_gain', 0) or 0
         
