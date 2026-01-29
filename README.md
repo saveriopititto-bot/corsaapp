@@ -1,60 +1,31 @@
-# CorsaScore App
+# 🏃‍♂️ SCORE 4.0 Lab
 
-Algoritmo per misurazione efficienza aerobica nelle corse con **SCORE 3.0 (Climate-Aware)**.
+Web app avanzata per l'analisi delle performance di corsa, basata sull'algoritmo **SCORE 4.0** e integrata con **Strava**, **Open-Meteo** e **Google Gemini AI**.
 
-## Funzionalità
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://scorerun.streamlit.app/)
 
-- ✅ Analisi del punteggio **SCORE 3.0** basato su potenza, frequenza cardiaca, decoupling e condizioni meteo
-- ✅ **Weather Correction Factor (WCF)** per temperatura e umidità
-- ✅ Caricamento dati da file JSON (Polar/Garmin)
-- ✅ Integrazione con Strava API per importare attività direttamente
-- ✅ Visualizzazioni interattive con grafici Plotly
+## 🚀 Funzionalità
 
-## Pubblicazione su Streamlit Cloud
+- **Analisi OAuth Strava**: Importazione sicura delle attività.
+- **SCORE 4.0 Engine**: Algoritmo proprietario che valuta l'efficienza bio-meccanica normalizzata per pendenza, peso e meteo.
+- **Riegel Benchmark**: Confronto dinamico della prestazione rispetto al Record del Mondo sulla specifica distanza.
+- **AI Coach (Gemini)**: Analisi qualitativa automatica basata su Zone di Potenza e Disaccoppiamento aerobico.
+- **Deep Dive**: Grafici interattivi (Altair) per distribuzione zone, scatter plot HR/Power e deriva cardiaca.
 
-1. **Rendi il repository pubblico** su GitHub (se privato)
-2. **Aggiungi secrets** (raccomandato per Strava):
-   - Vai su Streamlit Cloud > App Settings > Secrets
-   - Aggiungi:
-     ```
-     [strava]
-     client_id = "your_client_id"
-     client_secret = "your_client_secret"
-     redirect_uri = "https://your-app-name.streamlit.app"
-     ```
-   - Il `redirect_uri` deve corrispondere esattamente a quello impostato nell'app Strava
-3. **Deploy**:
-   - Vai su [share.streamlit.io](https://share.streamlit.io)
-   - Collega il tuo repository GitHub
-   - Seleziona il branch main e il file app.py
-   - Clicca Deploy
+## 🛠 Tech Stack
 
-## Configurazione Strava
+- **Frontend/Backend**: Python, Streamlit
+- **Data Science**: Pandas, NumPy
+- **Visualization**: Altair
+- **External Services**:
+  - Strava API v3 (Auth & Data Streams)
+  - Open-Meteo API (Historical Weather)
+  - Google Gemini 1.5 Flash (Generative AI Analysis)
 
-### Per Utenti Finali (Consigliato)
-Ogni utente può connettere il proprio account Strava personale:
+## 📂 Struttura Modulare
 
-1. **Crea la tua app Strava**: Vai su [https://www.strava.com/settings/api](https://www.strava.com/settings/api)
-2. **Configura l'app**:
-   - Application Name: "CorsaScore Personale"
-   - Website: `https://corsaappalpha.streamlit.app`
-   - Authorization Callback Domain: `corsaappalpha.streamlit.app`
-3. **Inserisci nell'app**: Client ID e Client Secret dalla tua app Strava
-4. **Connetti**: Clicca "🔗 Connetti Strava" per autorizzare l'accesso
-
-### Per Sviluppatori (Deployment Ufficiale)
-Aggiungi secrets in Streamlit Cloud per un'app Strava condivisa che tutti possono usare.
-
-## Icona Personalizzata
-
-Per usare un'icona personalizzata:
-1. Metti la tua immagine (PNG, ICO, etc.) nella cartella `assets/`
-2. Rinominala come `icon.png` (o modifica il codice in `app.py` per usare il tuo nome file)
-3. L'app la caricherà automaticamente al prossimo deploy
-
-## Esecuzione Locale
-
-```bash
-pip install -r requirements.txt
-streamlit run app.py
-```
+Il progetto segue un'architettura pulita:
+- `engine/`: Logica matematica pura (RunMetrics, ScoreEngine).
+- `services/`: Gestione API esterne e caching.
+- `ui/`: Componenti di visualizzazione e grafici.
+- `app.py`: Controller principale dell'applicazione.
