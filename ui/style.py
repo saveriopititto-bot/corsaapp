@@ -30,8 +30,8 @@ def apply_custom_style():
 
         /* 3. STILE KPI CARDS (st.metric) */
         div[data-testid="stMetric"] {
-            background-color: #FFFFFF;
-            border: 1px solid #F0F0F3;
+            background-color: #F6FDC3;
+            border: 1px solid #FFCF96;
             border-radius: 16px;
             padding: 15px 10px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
@@ -41,7 +41,7 @@ def apply_custom_style():
         div[data-testid="stMetric"]:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
-            border-color: #6C5DD3;
+            border-color: #FF8080;
         }
 
         div[data-testid="stMetricLabel"] {
@@ -85,14 +85,14 @@ def apply_custom_style():
         }
 
         .stTabs [aria-selected="true"] {
-            background-color: #E3F2FD; /* Colore sfondo tab attiva */
-            color: #6C5DD3 !important; /* Colore testo tab attiva */
+            background-color: #CDFAD5; /* Colore sfondo tab attiva */
+            color: #FF8080 !important; /* Colore testo tab attiva */
             border-bottom: none;
         }
         
         /* 6. EXPANDER */
         .streamlit-expanderHeader {
-            background-color: #FFFFFF;
+            background-color: #F6FDC3;
             border-radius: 10px;
             font-weight: 600;
             color: #2D3436;
@@ -116,14 +116,14 @@ def apply_custom_style():
             width: 170px;
             height: 170px;
             border-radius: 50%;
-            background: white;
+            background: #F6FDC3;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             /* Base border */
-            border: 6px solid #F0F0F3;
+            border: 6px solid #FFCF96;
             cursor: pointer;
         }
 
@@ -133,7 +133,7 @@ def apply_custom_style():
             position: absolute;
             top: -6px; left: -6px; right: -6px; bottom: -6px;
             border-radius: 50%;
-            background: conic-gradient(#6C5DD3 var(--angle), transparent 0deg);
+            background: conic-gradient(#FF8080 var(--angle), transparent 0deg);
             z-index: -1; /* Behind the white circle? No, we need a mask */
             /* Let's try a border image approach or mask */
             display: none;
@@ -143,8 +143,8 @@ def apply_custom_style():
         .score-circle:hover {
             border-color: transparent;
             background: 
-                linear-gradient(white, white) padding-box,
-                conic-gradient(#00E676 var(--angle), #F0F0F3 0deg) border-box; /* Green loading */
+                linear-gradient(#F6FDC3, #F6FDC3) padding-box,
+                conic-gradient(#CDFAD5 var(--angle), #FFCF96 0deg) border-box; /* Green loading */
             animation: rotateScore 1s ease-out forwards;
         }
 

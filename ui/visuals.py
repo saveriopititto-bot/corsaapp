@@ -15,7 +15,7 @@ def render_benchmark_chart(df):
         x=alt.X('SCORE:Q', bin=alt.Bin(maxbins=10), title='Score'),
         y=alt.Y('count()', title='Freq')
     )
-    chart = base.mark_bar(color='#6C5DD3', cornerRadiusTopLeft=5, cornerRadiusTopRight=5).properties(
+    chart = base.mark_bar(color='#FF8080', cornerRadiusTopLeft=5, cornerRadiusTopRight=5).properties(
         height=200
     ).configure_axis(
         grid=False,
@@ -38,7 +38,7 @@ def render_zones_chart(zones):
     df_zones = pd.DataFrame(list(zones.items()), columns=['Zona', 'Percentuale'])
     
     # Colori per le zone: Z1 (Grigio) -> Z5 (Rosso)
-    colors = ['#E0E0E0', '#90CAF9', '#A5D6A7', '#FFCC80', '#EF9A9A']
+    colors = ['#CDFAD5', '#F6FDC3', '#FFCF96', '#FF8080', '#FF8080']
     
     chart = alt.Chart(df_zones).mark_bar(cornerRadiusEnd=5).encode(
         x=alt.X('Zona', sort=None, axis=alt.Axis(labelAngle=0)),
@@ -71,7 +71,7 @@ def render_scatter_chart(watts, hr):
     chart = alt.Chart(df).mark_circle(size=60, opacity=0.3).encode(
         x=alt.X('Watts', title='Potenza (W)'),
         y=alt.Y('HR', title='Frequenza Cardiaca (bpm)', scale=alt.Scale(zero=False)),
-        color=alt.value('#6C5DD3'),
+        color=alt.value('#FF8080'),
         tooltip=['Watts', 'HR']
     ).interactive().properties(
         height=300
@@ -153,17 +153,17 @@ def render_trend_chart(df):
     base = alt.Chart(chart_data).encode(x='Data:T')
 
     area = base.mark_area(
-        line={'color':'#6C5DD3', 'strokeWidth': 3},
+        line={'color':'#FF8080', 'strokeWidth': 3},
         color=alt.Gradient(
             gradient='linear',
-            stops=[alt.GradientStop(color='#6C5DD3', offset=0),
+            stops=[alt.GradientStop(color='#FF8080', offset=0),
                    alt.GradientStop(color='white', offset=1)],
             x1=1, x2=1, y1=1, y2=0
         ),
         opacity=0.3
     ).encode(y=alt.Y(y_col, scale=alt.Scale(zero=False), title=None))
 
-    points = base.mark_circle(color='#6C5DD3').encode(
+    points = base.mark_circle(color='#FF8080').encode(
         y=y_col,
         tooltip=['Data', y_col]
     )
